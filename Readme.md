@@ -82,16 +82,18 @@ Enable "Read from file"
 
 Point it to your nowplaying.txt file
 
+Add a VLC Video Source and select the songs from your PLAYLIST_FOLDER
+
 Now, whenever your music changes, OBS will update automatically! 🎉
 
 Config Options
-
+```
 PLAYLIST_FOLDER → The folder where your music files are located
 
 OUTPUT_FILE → The text file OBS will read
 
 POLL_INTERVAL → How often (in seconds) the script checks for updates
-
+```
 Notes
 
 Works best if your player updates file modified times (most do).
@@ -103,4 +105,5 @@ You can stop the script anytime with CTRL + C.
 Author
 
 Made by DerrickGnC
+
 
