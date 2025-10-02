@@ -7,7 +7,7 @@ When a new track begins playing, the script extracts metadata (Artist, Title, Al
 the mutagen library and writes it to a text file. OBS can display this text file with a
 Text (GDI+) source set to "Read from file".
 
-Author: YourName
+Author: DerrickGnC
 License: MIT
 """
 
@@ -120,3 +120,4 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         print("\n[EXIT] Now Playing script stopped.")
+
