@@ -1,49 +1,27 @@
-#!/usr/bin/env python3
-"""
-OBS Now Playing Script
------------------------
-
-Monitors a folder of music files and writes the current track’s metadata
-(Artist - Title (Album)) to a text file for use in OBS.
-
-Setup:
-- Run this script once. It will generate a config.json file with default paths.
-- Edit config.json to match your music folder and output file location.
-- Run again and it will just work!
-
-Requirements:
-- Python 3.10+
-- mutagen (auto-installed if missing)
-
-Author: DerrickGnC
-"""
-
 import os
 import sys
-import time
 import json
+import time
 import subprocess
-import importlib
 
-# --- Dependency Auto-Installer ---
-def install_and_import(package):
-    try:
-        return importlib.import_module(package)
-    except ImportError:
-        print(f"📦 Installing missing dependency: {package} ...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-        return importlib.import_module(package)
+# ----------------------------
+# Auto-install mutagen if missing
+# ----------------------------
+try:
+    from mutagen import File
+except ImportError:
+    print("📦 Installing required dependency: mutagen...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "mutagen"])
+    from mutagen import File
 
-mutagen = install_and_import("mutagen")
-from mutagen import File as MutagenFile
-
-
-# --- Config Handling ---
 CONFIG_FILE = "config.json"
 
+
+# ----------------------------
+# Load or create config.json
+# ----------------------------
 def load_config():
     if not os.path.exists(CONFIG_FILE):
-        # Create a default config.json if missing
         default = {
             "PLAYLIST_FOLDER": "C:\\path\\to\\your\\playlist\\music",
             "OUTPUT_FILE": "C:\\obs\\nowplaying.txt",
@@ -51,88 +29,101 @@ def load_config():
         }
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(default, f, indent=4)
-        print(f"⚠️ Created {CONFIG_FILE}. Please update the paths inside it, then re-run this script.")
+        print(f"⚠️ Created {CONFIG_FILE}. Please edit it with your paths, then re-run this script.")
         sys.exit(1)
 
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
         config = json.load(f)
 
-    # Normalize slashes so users can paste raw paths like C:\Music\Playlist
+    # Normalize paths so raw Windows paths work
     config["PLAYLIST_FOLDER"] = os.path.normpath(config["PLAYLIST_FOLDER"])
     config["OUTPUT_FILE"] = os.path.normpath(config["OUTPUT_FILE"])
     return config
 
-config = load_config()
-PLAYLIST_FOLDER = config["PLAYLIST_FOLDER"]
-OUTPUT_FILE = config["OUTPUT_FILE"]
-POLL_INTERVAL = config.get("POLL_INTERVAL", 2)
 
-
-# --- Helper Functions ---
-def get_metadata(filepath):
-    """Extract metadata from an audio file. Returns formatted string."""
+# ----------------------------
+# Extract metadata from file
+# ----------------------------
+def get_metadata(file_path):
     try:
-        audio = MutagenFile(filepath, easy=True)
-        if audio is None:
-            return os.path.splitext(os.path.basename(filepath))[0]  # fallback to filename
-
-        artist = ", ".join(audio.get("artist", ["Unknown Artist"]))
-        title = ", ".join(audio.get("title", [os.path.splitext(os.path.basename(filepath))[0]]))
-        album = ", ".join(audio.get("album", ["Unknown Album"]))
-        return f"{artist} - {title} ({album})"
-    except Exception as e:
-        print(f"⚠️ Error reading metadata for {filepath}: {e}")
-        return os.path.splitext(os.path.basename(filepath))[0]
+        audio = File(file_path, easy=True)
+        if audio:
+            artist = audio.get("artist", ["Unknown Artist"])[0]
+            title = audio.get("title", [os.path.basename(file_path)])[0]
+            album = audio.get("album", ["Unknown Album"])[0]
+            return f"{artist} - {title} ({album})"
+    except Exception:
+        pass
+    return os.path.basename(file_path)
 
 
-def write_to_file(text):
-    """Write text to output file for OBS."""
+# ----------------------------
+# Write current track to file
+# ----------------------------
+def write_output(output_file, text):
     try:
-        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+        with open(output_file, "w", encoding="utf-8") as f:
             f.write(text)
     except Exception as e:
-        print(f"⚠️ Failed to write to output file: {e}")
+        print(f"❌ Could not write to output file: {e}")
 
 
-def find_current_track():
-    """
-    Detects the most recently modified file in the playlist folder.
-    Assumes this is the current playing track.
-    """
-    try:
-        files = [
-            os.path.join(PLAYLIST_FOLDER, f)
-            for f in os.listdir(PLAYLIST_FOLDER)
-            if os.path.isfile(os.path.join(PLAYLIST_FOLDER, f))
-        ]
-        if not files:
-            return None
-        return max(files, key=os.path.getmtime)  # latest modified file
-    except Exception as e:
-        print(f"⚠️ Error scanning playlist folder: {e}")
-        return None
-
-
-# --- Main Loop ---
-def main():
+# ----------------------------
+# Monitor folder for updates
+# ----------------------------
+def monitor_folder(playlist_folder, output_file, poll_interval):
+    last_played = None
     print("🎶 Now Playing script started...")
-    print(f"📂 Monitoring folder: {PLAYLIST_FOLDER}")
-    print(f"📝 Writing to: {OUTPUT_FILE}")
-    
-    last_track = None
+    print(f"📂 Monitoring folder: {playlist_folder}")
+    print(f"📝 Writing to: {output_file}")
 
     while True:
-        track = find_current_track()
-        if track and track != last_track:
-            metadata = get_metadata(track)
-            write_to_file(metadata)
-            print(f"[UPDATED] {metadata}")
-            last_track = track
-        time.sleep(POLL_INTERVAL)
+        try:
+            files = [os.path.join(playlist_folder, f) for f in os.listdir(playlist_folder)]
+            files = [f for f in files if os.path.isfile(f)]
+
+            if not files:
+                time.sleep(poll_interval)
+                continue
+
+            latest_file = max(files, key=os.path.getmtime)
+
+            if latest_file != last_played:
+                metadata = get_metadata(latest_file)
+                write_output(output_file, metadata)
+                print(f"[UPDATED] {metadata}")
+                last_played = latest_file
+
+        except Exception as e:
+            print(f"❌ Error while monitoring: {e}")
+
+        time.sleep(poll_interval)
+
+
+# ----------------------------
+# Main
+# ----------------------------
+def main():
+    config = load_config()
+    playlist_folder = config["PLAYLIST_FOLDER"]
+    output_file = config["OUTPUT_FILE"]
+    poll_interval = config["POLL_INTERVAL"]
+
+    if not os.path.exists(playlist_folder):
+        print(f"❌ Playlist folder does not exist: {playlist_folder}")
+        sys.exit(1)
+
+    monitor_folder(playlist_folder, output_file, poll_interval)
 
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n👋 Script stopped by user.")
+        print("\n🛑 Script stopped by user.")
+    except Exception as e:
+        print(f"❌ Fatal Error: {e}")
+    finally:
+        # Keeps window open on double-click
+        input("\nPress Enter to exit...")
