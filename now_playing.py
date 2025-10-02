@@ -32,10 +32,19 @@ def load_config():
         print(f"⚠️ Created {CONFIG_FILE}. Please edit it with your paths, then re-run this script.")
         sys.exit(1)
 
+    # Read raw text first
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-        config = json.load(f)
+        raw_text = f.read()
 
-    # Normalize paths so raw Windows paths work
+    try:
+        # Try normal JSON parse first
+        config = json.loads(raw_text)
+    except json.JSONDecodeError:
+        # If invalid \ escapes were pasted, fix them automatically
+        repaired = raw_text.replace("\\", "/")  # safer, works cross-platform
+        config = json.loads(repaired)
+
+    # Normalize slashes so OBS + Python are happy
     config["PLAYLIST_FOLDER"] = os.path.normpath(config["PLAYLIST_FOLDER"])
     config["OUTPUT_FILE"] = os.path.normpath(config["OUTPUT_FILE"])
     return config
