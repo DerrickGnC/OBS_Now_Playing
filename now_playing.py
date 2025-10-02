@@ -55,7 +55,12 @@ def load_config():
         sys.exit(1)
 
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+        config = json.load(f)
+
+    # Normalize slashes so users can paste raw paths like C:\Music\Playlist
+    config["PLAYLIST_FOLDER"] = os.path.normpath(config["PLAYLIST_FOLDER"])
+    config["OUTPUT_FILE"] = os.path.normpath(config["OUTPUT_FILE"])
+    return config
 
 config = load_config()
 PLAYLIST_FOLDER = config["PLAYLIST_FOLDER"]
