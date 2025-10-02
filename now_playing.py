@@ -55,6 +55,25 @@ def get_metadata(file_path):
     except Exception:
         pass
     return os.path.basename(file_path)
+last_file = None
+
+def get_current_track(folder):
+    """
+    Find the most recently accessed media file in the folder.
+    VLC (and OBS's VLC Source) updates 'last access time' when a file starts playing.
+    """
+    latest_file = None
+    latest_time = 0
+
+    for root, _, files in os.walk(folder):
+        for name in files:
+            if name.lower().endswith((".mp3", ".flac", ".ogg", ".wav", ".m4a")):
+                path = os.path.join(root, name)
+                atime = os.path.getatime(path)  # last accessed
+                if atime > latest_time:
+                    latest_time = atime
+                    latest_file = path
+    return latest_file
 
 
 # ----------------------------
@@ -79,26 +98,17 @@ def monitor_folder(playlist_folder, output_file, poll_interval):
     print(f"📝 Writing to: {output_file}")
 
     while True:
-        try:
-            files = [os.path.join(playlist_folder, f) for f in os.listdir(playlist_folder)]
-            files = [f for f in files if os.path.isfile(f)]
-
-            if not files:
-                time.sleep(poll_interval)
-                continue
-
-            latest_file = max(files, key=os.path.getmtime)
-
-            if latest_file != last_played:
-                metadata = get_metadata(latest_file)
-                write_output(output_file, metadata)
-                print(f"[UPDATED] {metadata}")
-                last_played = latest_file
-
-        except Exception as e:
-            print(f"❌ Error while monitoring: {e}")
-
-        time.sleep(poll_interval)
+        global last_file
+        print("🎶 Now Playing script started...")
+        while True:
+            track = get_current_track(playlist_folder)
+            if track and track != last_file:
+                last_file = track
+                meta = get_metadata(track)
+                with open(output_file, "w", encoding="utf-8") as f:
+                    f.write(meta)
+                print(f"Updated: {meta}")
+            time.sleep(poll_interval)
 
 
 # ----------------------------
