@@ -25,8 +25,10 @@ OBS Studio (to display the output file)
 
 Setup
 1. Clone or Download
+```
 git clone https://github.com/YourUsername/obs-now-playing.git
-cd obs-now-playing
+cd obs-now-playing 
+```
 
 
 Or download the .zip and extract it.
@@ -43,33 +45,33 @@ Open config.json in a text editor and update it with your own paths.
 You can copy and paste raw paths
 
 Example (Windows):
-
+```
 {
     "PLAYLIST_FOLDER": "C:\Users\Bilbo\Music\Playlist",
     "OUTPUT_FILE": "C:\obs\nowplaying.txt",
     "POLL_INTERVAL": 2
 }
-
+```
 
 Example (macOS/Linux):
-
+```
 {
     "PLAYLIST_FOLDER": "/Users/derrick/Music/Playlist",
     "OUTPUT_FILE": "/home/derrick/obs/nowplaying.txt",
     "POLL_INTERVAL": 2
 }
-
+```
 4. Run the Script
 python now_playing.py
 
 
 You should see output like:
-
+```
 🎶 Now Playing script started...
 📂 Monitoring folder: C:\Users\Derrick\Music\Playlist
 📝 Writing to: C:\obs\nowplaying.txt
 [UPDATED] Nobuo Uematsu - Main Theme (Final Fantasy)
-
+```
 5. Add to OBS
 
 Open OBS
@@ -101,3 +103,4 @@ You can stop the script anytime with CTRL + C.
 Author
 
 Made by DerrickGnC
+
