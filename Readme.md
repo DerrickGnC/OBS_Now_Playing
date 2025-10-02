@@ -1,16 +1,23 @@
-# OBS Now Playing Updater
+# OBS Now Playing Script
 
-This script updates a text file with the current song information
-(Artist - Title (Album)) from a VLC Video Source playlist in OBS.
+A lightweight Python script that displays the **currently playing song** in OBS.  
+It works with a **VLC Video Source playlist** (or any folder of music files) and updates a text file in real time with the current track metadata (`Artist - Title (Album)`).
+
+---
 
 ## Features
-- Monitors a folder of audio files used by OBS's VLC source
-- Extracts metadata tags (Artist, Title, Album) with [mutagen](https://mutagen.readthedocs.io)
-- Writes output to `nowplaying.txt` for OBS to display
-- Works with MP3, FLAC, OGG, WAV, M4A
+- Auto-installs dependencies (no manual `pip install` needed)
+- Reads metadata from MP3, FLAC, OGG, WAV, M4A, etc.
+- Falls back to filename if tags are missing
+- Easy setup with `config.json` (no Python editing required)
+- Updates automatically when tracks change
+- Works on **Windows, macOS, Linux**
 
-## Setup
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-"# OBS_Now_Playing" 
+---
+
+## Installation
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/YOUR_USERNAME/obs-now-playing.git
+cd obs-now-playing
